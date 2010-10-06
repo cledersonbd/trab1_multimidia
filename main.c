@@ -33,45 +33,43 @@ int main() {
 	frame_dst = cvCreateImage(cvGetSize(frame), IPL_DEPTH_8U, 1);
 	ts = cvCreateImage(cvGetSize(frame), IPL_DEPTH_8U, 1);
 
-	cvNamedWindow( "Normal", CV_WINDOW_AUTOSIZE );
+	cvNamedWindow( "Frame", CV_WINDOW_AUTOSIZE );
+	cvNamedWindow( "Fundo", CV_WINDOW_AUTOSIZE );
 	cvNamedWindow( "Work", CV_WINDOW_AUTOSIZE );
 
 	while( 1 ) {
-//		cvSplit(cvQueryFrame( capture ), frame, NULL, NULL, NULL);
 		cvCvtColor(cvQueryFrame( capture ), frame, CV_RGB2GRAY);
-		cvSmooth(frame, frame, CV_GAUSSIAN, 7, 7, 0, 0);
-
-		if (cont == CATCH) {
-//			cvSplit(cvQueryFrame( capture ), fundo, NULL, NULL, NULL);
-			cvCvtColor(cvQueryFrame( capture ), fundo, CV_RGB2GRAY);
-			cvSmooth(fundo, fundo, CV_GAUSSIAN, 7, 7, 0, 0);
-			printf("Peguei o fundo: [%p]\n", fundo);
-		}
+//		cvSmooth(frame, frame, CV_GAUSSIAN, 7, 7, 0, 0);
 
 		if( !frame ) {
 			fprintf( stderr, "ERROR: frame is null...\n" );
 			getchar();
 			break;
 		}
-
-		if ( (cont > CATCH ) &&fundo && (fundo != frame) ) {
-//			cvSplit(cvQueryFrame( capture ), frame_dst, NULL, NULL, NULL);
-			cvCvtColor(cvQueryFrame( capture ), frame_dst, CV_RGB2GRAY);
+		if ((cont == CATCH)) {
+			cvCopy(frame, fundo, NULL);
+			printf("Peguei o fundo: [%p]\n", fundo);
+		}
+		else if ( (cont > CATCH ) && (fundo != frame) ) {
+//			cvCvtColor(cvQueryFrame( capture ), frame_dst, CV_RGB2GRAY);
 
 			// subtracao do fundo			 
 			cvSub(fundo, frame, frame_dst, NULL);
 			// suavizando a bagaca
-			cvSmooth(frame_dst, ts, CV_GAUSSIAN, 7, 7, 0, 0);
+//			cvSmooth(frame_dst, ts, CV_GAUSSIAN, 7, 7, 0, 0);
 			// aplicando limiar
-			cvThreshold(ts, ts, 15.0, 255.0, CV_THRESH_BINARY);
+			cvThreshold(frame_dst, ts, 10.0, 255.0, CV_THRESH_BINARY);
+			// Dilatar
+//			cvDilate(ts, ts, NULL, 1);
 			// erodindo pra aumentar a eficiencia do blob
-			cvErode(ts, ts, NULL, 2);
+//			cvErode(ts, ts, NULL, 10);
 //			cvThreshold(frame_dst, ts, 5.0, 255.0, CV_THRESH_TOZERO);
 
-			cvShowImage( "Work", ts);
 		}
 
-		cvShowImage("Normal", frame);
+		cvShowImage( "Work", ts);
+		cvShowImage("Fundo", fundo);		
+		cvShowImage("Frame", frame);
 		// Do not release the frame!      
 		//If ESC key pressed, Key=0x10001B under OpenCV 0.9.7(linux version),     
 		//remove higher bits using AND operator
