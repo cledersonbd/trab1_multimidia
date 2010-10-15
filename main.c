@@ -6,6 +6,9 @@
 // Numero de quadros ate a camera "calibrar"
 #define CATCH 60
 #define WINSIZE 150
+#define MOV_LIMIT 3
+//#define FROMFILE
+
 
 // A Simple Camera Capture Framework 
 int main(int argc, char **argv) {
@@ -17,11 +20,17 @@ int main(int argc, char **argv) {
 	CvMoments* moments;
 	IplImage *foto, *fotoTMP, *ts_cor, *framec, *fotoWIN;
 	CvSize ROI, foto_size;
-	CvPoint cabeca, margemTL;
+	CvPoint cabeca, margemTL, margemOLD;
 	CvPoint2D64f razao;
+	CvRect retangulo, bigr;
+	CvSeq *seq;
+	CvMemStorage *storage;
 
-//	CvCapture* capture = cvCaptureFromFile( argv[2] );
+#ifdef FROMFILE
+	CvCapture* capture = cvCaptureFromFile( argv[2] );
+#else
 	CvCapture* capture = cvCaptureFromCAM( CV_CAP_ANY );
+#endif
 
 	if( !capture ) {
 				fprintf( stderr, "ERROR: capture is NULL \n" );
@@ -61,6 +70,9 @@ int main(int argc, char **argv) {
 	razao.x = (double) foto_size.width/ROI.width ;
 	razao.y = (double) foto_size.height/ROI.height ;
 
+	margemOLD.x = - MOV_LIMIT - 1;
+	margemOLD.y = - MOV_LIMIT - 1;
+
 	while( 1 ) {
 //		usleep(100000);
 		framec = cvQueryFrame( capture );
@@ -87,9 +99,31 @@ int main(int argc, char **argv) {
 			//	Aumenta o contraste da diferenca
 //			cvMul(frame_dst,  frame_dst, frame_dst, 1);
 //			cvShowImage("Sub", frame_dst);
-
+#ifdef FROMFILE
+			cvThreshold(frame_dst, ts, 45.0, 255.0, CV_THRESH_BINARY);
+#else
 			cvThreshold(frame_dst, ts, 10.0, 255.0, CV_THRESH_BINARY);
+#endif
 //			cvShowImage("TS", ts);
+
+			storage = cvCreateMemStorage(0);
+			cvClearMemStorage(storage);
+			cvFindContours(ts, storage, &seq, sizeof(CvContour), CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
+
+			bigr.width = 0;
+			bigr.height = 0;
+			for(; seq; seq = seq->h_next) {
+				retangulo = cvBoundingRect(seq, 0);
+				if ( (retangulo.width * retangulo.height) > (bigr.width * bigr.height) ) {
+					bigr.x = retangulo.x;
+					bigr.y = retangulo.y;
+					bigr.width = retangulo.width;
+					bigr.height = retangulo.height;
+				}
+			}
+
+
+			cvRectangle(framec, cvPoint(retangulo.x, retangulo.y), cvPoint(retangulo.x + retangulo.width, retangulo.y + retangulo.height), CV_RGB(0,0,255), 2, 8, 0);
 
 			cvMoments(ts, moments, 1);
 
@@ -128,8 +162,21 @@ int main(int argc, char **argv) {
 				else
 					margemTL.y = (int) cabeca.y * razao.y  - WINSIZE;
 
-				cvSetImageROI(foto, cvRect( margemTL.x, margemTL.y, WINSIZE * 2 , WINSIZE * 2));
-				//(cabeca.x * razao.x + WINSIZE) > foto_size.width || (cabeca.y * razao.y + WINSIZE) > foto_size.height)
+				printf("margemOLD: %dx%d | ", margemOLD.x, margemOLD.y);
+
+				if ( (margemTL.x > (margemOLD.x + MOV_LIMIT) ) || (margemTL.y > (margemOLD.y + MOV_LIMIT)) ) {
+					cvSetImageROI(foto, cvRect( margemTL.x, margemTL.y, WINSIZE * 2 , WINSIZE * 2));
+					printf("Se mexeu | ");
+					margemOLD.x = margemTL.x;
+					margemOLD.y = margemTL.y;
+				}
+				else {
+					cvSetImageROI(foto, cvRect( margemOLD.x, margemOLD.y, WINSIZE * 2 , WINSIZE * 2));
+					printf("Nao mexeu | ");
+				}
+
+//				margemOLD.x = margemTL.x;
+//				margemOLD.y = margemTL.y;
 
 				printf("CAM %dx%d | TL_CPY: %dx%d | CabecaFOTO: x:%d y:%d | foto %dx%d | fotoWIN %dx%d\n", ROI.width, ROI.height, margemTL.x, margemTL.y, (int) (cabeca.x * razao.x) , (int) (cabeca.y * razao.y), foto->roi->width, foto->roi->height, fotoWIN->width, fotoWIN->height);
 
