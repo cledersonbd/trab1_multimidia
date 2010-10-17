@@ -2,23 +2,29 @@
 #include <opencv/cxcore.h>
 #include <opencv/highgui.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Numero de quadros ate a camera "calibrar"
 #define CATCH 60
 #define WINSIZE 150
-#define MOV_LIMIT 3
+#define MOV_LIMIT 5
+#define PIP_PERCENT (0.2)
 //#define FROMFILE
 
 
 // A Simple Camera Capture Framework 
 int main(int argc, char **argv) {
 	unsigned long int cont=0;
-	IplImage* frame;
-	IplImage* fundo ;
-	IplImage* frame_dst;
-	IplImage* ts;
-	CvMoments* moments;
-	IplImage *foto, *fotoTMP, *ts_cor, *framec, *fotoWIN;
+	CvMoments moments;
+	IplImage *frame,
+			 *fundo,
+			 *frame_dst,
+			 *ts,
+			 *foto,
+ 			 *fotoTMP, 
+			 *pip_frame, 
+			 *framec, 
+			 *fotoWIN;
 	CvSize ROI, foto_size;
 	CvPoint cabeca, margemTL, margemOLD;
 	CvPoint2D64f razao;
@@ -51,7 +57,7 @@ int main(int argc, char **argv) {
 	fundo = cvCreateImage(ROI, IPL_DEPTH_8U, 1);
 	frame_dst = cvCreateImage(ROI, IPL_DEPTH_8U, 1);
 	ts = cvCreateImage(ROI, IPL_DEPTH_8U, 1);
-	ts_cor = cvCreateImage(ROI, IPL_DEPTH_8U, 3);
+	pip_frame = cvCreateImage(cvSize(foto_size.width * PIP_PERCENT, foto_size.height * PIP_PERCENT), IPL_DEPTH_8U, 3);
 	framec = cvCreateImage(ROI, IPL_DEPTH_8U, 3);
 	fotoWIN = cvCreateImage(cvSize(WINSIZE * 2 , WINSIZE * 2), IPL_DEPTH_8U, 3);
 
@@ -59,7 +65,7 @@ int main(int argc, char **argv) {
 //	cvNamedWindow( "Fundo", CV_WINDOW_AUTOSIZE );
 //	cvNamedWindow( "Sub", CV_WINDOW_AUTOSIZE );
 //	cvNamedWindow( "TS", CV_WINDOW_AUTOSIZE );
-	cvNamedWindow( "CAM", CV_WINDOW_AUTOSIZE );
+//	cvNamedWindow( "CAM", CV_WINDOW_AUTOSIZE );
 	cvNamedWindow( "FOTO", CV_WINDOW_AUTOSIZE );
 	cvNamedWindow( "WINDOW", CV_WINDOW_AUTOSIZE );
 
@@ -85,24 +91,28 @@ int main(int argc, char **argv) {
 		}
 		if ((cont == CATCH)) {
 			cvCopy(frame, fundo, NULL);
+			cvSmooth(fundo, fundo, CV_GAUSSIAN, 3, 0, 0, 0);
 			printf("Peguei o fundo: [%p]\n", fundo);
 		}
 		else if ( (cont > CATCH ) && (fundo != frame) ) {
 //			cvShowImage("Fundo", fundo);		
 //			cvShowImage("Frame", frame);
+			cvSmooth(frame, frame, CV_GAUSSIAN, 3, 0, 0, 0);
 
-			cvSub(fundo, frame, frame_dst, NULL);
+			cvAbsDiff(frame, fundo, frame_dst);
+//			cvSub(fundo, frame, frame_dst, NULL);
 
-			cvSmooth(frame_dst, frame_dst, CV_GAUSSIAN, 3, 0, 0, 0);
+//			cvSmooth(frame_dst, frame_dst, CV_GAUSSIAN, 3, 0, 0, 0);
 //			cvShowImage("Sub", frame_dst);
 
 			//	Aumenta o contraste da diferenca
 //			cvMul(frame_dst,  frame_dst, frame_dst, 1);
 //			cvShowImage("Sub", frame_dst);
 #ifdef FROMFILE
-			cvThreshold(frame_dst, ts, 45.0, 255.0, CV_THRESH_BINARY);
+//			cvAdaptiveThreshold(frame_dst, ts, 255.0, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, 7, 10);
+			cvThreshold(frame_dst, ts, 60.0, 255.0, CV_THRESH_BINARY);
 #else
-			cvThreshold(frame_dst, ts, 10.0, 255.0, CV_THRESH_BINARY);
+			cvThreshold(frame_dst, ts, 40.0, 255.0, CV_THRESH_BINARY);
 #endif
 //			cvShowImage("TS", ts);
 
@@ -123,30 +133,30 @@ int main(int argc, char **argv) {
 			}
 
 
-			cvRectangle(framec, cvPoint(retangulo.x, retangulo.y), cvPoint(retangulo.x + retangulo.width, retangulo.y + retangulo.height), CV_RGB(0,0,255), 2, 8, 0);
+			cvRectangle(framec, cvPoint(bigr.x, bigr.y), cvPoint(bigr.x + bigr.width, bigr.y + bigr.height), CV_RGB(0,0,255), 2, 8, 0);
+			cvRectangle(ts, cvPoint(bigr.x, bigr.y), cvPoint(bigr.x + bigr.width, bigr.y + bigr.height), CV_RGB(255,255,255), CV_FILLED, 8, 0);
 
-			cvMoments(ts, moments, 1);
+//			cvSmooth(ts, ts, CV_MEDIAN, 3, 0, 0, 0);
+
+//			cvShowImage("Sub", ts);
+			cvMoments(ts, &moments, 1);
 
 //			printf("m00: %f | m10: %f | m01: %f | %fx%f\n", moments->m00, moments->m10, moments->m01, moments->m10 / moments->m00, moments->m01 / moments->m00);
 
 			//	Calcula centro de massa
-			cabeca.x = moments->m10 / moments->m00 ;
-//			cabeca.y = moments->m01 / moments->m00 / 2 / 2 ;
-			cabeca.y = moments->m01 / moments->m00 ;
-
-			cvCvtColor(ts, ts_cor, CV_GRAY2RGB);
+			cabeca.x = moments.m10 / moments.m00 ;
+//			cabeca.y = moments->m01 / moments->m00 ;
+			cabeca.y = (moments.m01 / moments.m00) - 3 * (bigr.height / 8);
 
 			cvCircle(framec, cvPoint(cabeca.x , cabeca.y), 25, CV_RGB(255, 0, 0), 2, 8, 0);
 //			cvShowImage("Resultado", frame_dst);
-	
-			if (moments->m00 > 0.0) {
-					
-//				cvSetImageROI(foto, cvRect((int) (moments->m10 / moments->m00), (int) (moments->m01 / moments->m00 / 2 / 2), ROI.width, ROI.height));
-//				cvSetImageROI(foto, cvRect((int) (moments->m10 / moments->m00), (int) (moments->m01 / moments->m00 / 2 / 2), ROI.width, ROI.height));
 
+			cvResize(framec, pip_frame, CV_INTER_AREA);
+	
+			if (moments.m00 > 0.0) {
+					
 				cvCopy(foto, fotoTMP, NULL);
 				cvRectangle(fotoTMP, cvPoint( (int)cabeca.x * razao.x - WINSIZE, (int)cabeca.y * razao.y - WINSIZE), cvPoint( (int)cabeca.x * razao.x + WINSIZE, (int)cabeca.y * razao.y + WINSIZE), CV_RGB(255, 0, 0), 2, 8, 0);
-//				cvSetImageROI(foto, cvRect(cabeca.x * razao.x - WINSIZE, cabeca.y * razao.y - WINSIZE, WINSIZE * 2 , WINSIZE * 2));
 
 				if ( cabeca.x * razao.x  < WINSIZE )
 					margemTL.x = 0;
@@ -162,51 +172,52 @@ int main(int argc, char **argv) {
 				else
 					margemTL.y = (int) cabeca.y * razao.y  - WINSIZE;
 
-				printf("margemOLD: %dx%d | ", margemOLD.x, margemOLD.y);
+//				printf("margemOLD: %dx%d | ", margemOLD.x, margemOLD.y);
 
-				if ( (margemTL.x > (margemOLD.x + MOV_LIMIT) ) || (margemTL.y > (margemOLD.y + MOV_LIMIT)) ) {
-					cvSetImageROI(foto, cvRect( margemTL.x, margemTL.y, WINSIZE * 2 , WINSIZE * 2));
-					printf("Se mexeu | ");
+				if ( abs(margemTL.x - margemOLD.x) > MOV_LIMIT  || abs(margemTL.y - margemOLD.y) > MOV_LIMIT ) {
+				
+					cvSetImageROI(foto, cvRect( margemOLD.x + (margemTL.x - margemOLD.x), margemOLD.y + (margemTL.y - margemOLD.y), WINSIZE * 2 , WINSIZE * 2));
+//					printf("Se mexeu | ");
 					margemOLD.x = margemTL.x;
 					margemOLD.y = margemTL.y;
 				}
 				else {
 					cvSetImageROI(foto, cvRect( margemOLD.x, margemOLD.y, WINSIZE * 2 , WINSIZE * 2));
-					printf("Nao mexeu | ");
+//					printf("Nao mexeu | ");
 				}
 
 //				margemOLD.x = margemTL.x;
 //				margemOLD.y = margemTL.y;
 
-				printf("CAM %dx%d | TL_CPY: %dx%d | CabecaFOTO: x:%d y:%d | foto %dx%d | fotoWIN %dx%d\n", ROI.width, ROI.height, margemTL.x, margemTL.y, (int) (cabeca.x * razao.x) , (int) (cabeca.y * razao.y), foto->roi->width, foto->roi->height, fotoWIN->width, fotoWIN->height);
+//				printf("CAM %dx%d | TL_CPY: %dx%d | CabecaFOTO: x:%d y:%d | foto %dx%d | fotoWIN %dx%d\n", ROI.width, ROI.height, margemTL.x, margemTL.y, (int) (cabeca.x * razao.x) , (int) (cabeca.y * razao.y), foto->roi->width, foto->roi->height, fotoWIN->width, fotoWIN->height);
 
 				cvCopy(foto, fotoWIN, NULL);
 				cvResetImageROI(foto);
 
-//				cvSetImageROI(fotoTMP, cvRect(0, 0, ROI.width, ROI.height));
-//				cvCopy(framec, fotoTMP, NULL);
-//				cvResetImageROI(fotoTMP);
+				//	Criando PIP
+//				cvSetImageROI(foto, cvRect( 0, 0, ROI.width * PIP_PERCENT , ROI.height * PIP_PERCENT));
+//				cvCopy(pip_frame, foto, NULL);
+//				cvResetImageROI(foto);
+
 				cvShowImage("WINDOW", fotoWIN);
-				cvShowImage("FOTO", fotoTMP);
+//				cvShowImage("FOTO", fotoTMP);
 
 			}
 			else {
 
 				cvCopy(foto, fotoTMP, NULL);
-//				cvSetImageROI(fotoTMP, cvRect(0, 0, ROI.width, ROI.height));
-//				cvCopy(ts_cor, fotoTMP, NULL);
-//				cvResetImageROI(fotoTMP);
-				cvShowImage("FOTO", fotoTMP);
+//				cvShowImage("FOTO", fotoTMP);
 
 
 			}
 
 		}
-		cvShowImage("CAM", framec);
-
-//		cvShowImage( "Work", ts);
-//		cvShowImage("Fundo", fundo);		
-//		cvShowImage("Frame", frame);
+		//	Criando PIP
+		cvSetImageROI(fotoTMP, cvRect( 0, 0, foto_size.width * PIP_PERCENT , foto_size.height * PIP_PERCENT));
+		cvCopy(pip_frame, fotoTMP, NULL);
+		cvResetImageROI(fotoTMP);
+//		cvShowImage("CAM", framec);
+		cvShowImage("FOTO", fotoTMP);
 
 		// Do not release the frame!      
 		//If ESC key pressed, Key=0x10001B under OpenCV 0.9.7(linux version),     
@@ -218,6 +229,8 @@ int main(int argc, char **argv) {
 	}
 	// Release the capture device housekeeping   
 	cvReleaseCapture( &capture );   
-	cvDestroyWindow( "mywindow" );
+	cvDestroyWindow( "CAM" );
+	cvDestroyWindow( "WINDOW" );
+	cvDestroyWindow( "FOTO" );
 	return 0; 
 }      
