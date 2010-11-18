@@ -8,7 +8,8 @@
 
 // Numero de quadros ate a camera "calibrar"
 #define CATCH 60
-#define WINSIZE 150
+#define WINSIZEX 300
+#define WINSIZEY 210
 #define MOV_LIMIT 5
 #define PIP_PERCENT (0.3)
 //#define FROMFILE
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
     ts = cvCreateImage(ROI, IPL_DEPTH_8U, 1);
     pip_frame = cvCreateImage(cvSize(foto_size.width * PIP_PERCENT, foto_size.height * PIP_PERCENT), IPL_DEPTH_8U, 3);
     framec = cvCreateImage(ROI, IPL_DEPTH_8U, 3);
-    fotoWIN = cvCreateImage(cvSize(WINSIZE * 2 , WINSIZE * 2), IPL_DEPTH_8U, 3);
+    fotoWIN = cvCreateImage(cvSize(WINSIZEX * 2 , WINSIZEY * 2), IPL_DEPTH_8U, 3);
 
     cvNamedWindow( "FOTO", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "WINDOW", CV_WINDOW_AUTOSIZE );
@@ -129,26 +130,26 @@ int main(int argc, char **argv) {
     
                     
 			cvCopy(foto, fotoTMP, NULL);
-			cvRectangle(fotoTMP, cvPoint( (int)cabeca.x * razao.x - WINSIZE, (int)cabeca.y * razao.y - WINSIZE), cvPoint( (int)cabeca.x * razao.x + WINSIZE, (int)cabeca.y * razao.y + WINSIZE), CV_RGB(255, 0, 0), 2, 8, 0);
+			cvRectangle(fotoTMP, cvPoint( (int)cabeca.x * razao.x - WINSIZEX, (int)cabeca.y * razao.y - WINSIZEY), cvPoint( (int)cabeca.x * razao.x + WINSIZEX, (int)cabeca.y * razao.y + WINSIZEY), CV_RGB(255, 0, 0), 2, 8, 0);
 
-			if ( cabeca.x * razao.x  < WINSIZE )
+			if ( cabeca.x * razao.x  < WINSIZEX )
 	    		margemTL.x = 0;
-			else if ( (cabeca.x * razao.x + WINSIZE) > (foto_size.width - 1) )
-				margemTL.x = foto_size.width - 1 - WINSIZE * 2;
+			else if ( (cabeca.x * razao.x + WINSIZEX) > (foto_size.width - 1) )
+				margemTL.x = foto_size.width - 1 - WINSIZEX * 2;
 			else
-				margemTL.x = (int) cabeca.x * razao.x  - WINSIZE;
+				margemTL.x = (int) cabeca.x * razao.x  - WINSIZEX;
 
-			if ( cabeca.y * razao.y  < WINSIZE)
+			if ( cabeca.y * razao.y  < WINSIZEY)
 				margemTL.y = 0;
-			else if ( (cabeca.y * razao.y + WINSIZE) > (foto_size.height - 1) )
-				margemTL.y = foto_size.height - 1 - WINSIZE * 2;
+			else if ( (cabeca.y * razao.y + WINSIZEY) > (foto_size.height - 1) )
+				margemTL.y = foto_size.height - 1 - WINSIZEY * 2;
 			else
-				margemTL.y = (int) cabeca.y * razao.y  - WINSIZE;
+				margemTL.y = (int) cabeca.y * razao.y  - WINSIZEY;
 
 
 			if ( abs(margemTL.x - margemOLD.x) > MOV_LIMIT  || abs(margemTL.y - margemOLD.y) > MOV_LIMIT ) {
 			
-				cvSetImageROI(foto, cvRect( margemOLD.x + (margemTL.x - margemOLD.x), margemOLD.y + (margemTL.y - margemOLD.y), WINSIZE * 2 , WINSIZE * 2));
+				cvSetImageROI(foto, cvRect( margemOLD.x + (margemTL.x - margemOLD.x), margemOLD.y + (margemTL.y - margemOLD.y), WINSIZEX * 2 , WINSIZEY * 2));
 				margemOLD.x = margemTL.x;
 			}
 
