@@ -282,7 +282,7 @@ usleep(30000);
         cvCvtColor( image, grey, CV_BGR2GRAY );
         face.img = image;
 
-if(count < 9 && face.num_frames % 3 == 0)
+if(count < 6 && face.num_frames % 8 == 0)
 detect_face(&face);
 
         if( need_to_init )
@@ -326,11 +326,15 @@ detect_face(&face);
 
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
-            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) );
-            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) );
-            if(pixx + WINSIZEX > foto_size.width) pixx = foto_size.width - WINSIZEX;
-            if(pixy + WINSIZEY > foto_size.height) pixy = foto_size.height - WINSIZEY;
-            cvSetImageROI(wind, cvRect( pixx-1, pixy-1 , WINSIZEX , WINSIZEY ));
+            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX/2;
+            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY/2;
+            //if(pixx + WINSIZEX/2 > foto_size.width) pixx = foto_size.width - WINSIZEX;
+            //if(pixx - WINSIZEX/2 < 0) pixx = 0;
+            //if(pixy + WINSIZEY/2 > foto_size.height) pixy = foto_size.height - WINSIZEY;
+            //if(pixy - WINSIZEY/2 < 0 ) pixy = 0;
+            cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX , WINSIZEY ));
+printf("pixx %d  all %d\n", pixx, foto_size.width);
+printf("pixy %d  all %d\n", pixy, foto_size.height);
             cvShowImage( "foto", wind );
             cvReleaseImage(&wind);
 
@@ -404,6 +408,7 @@ detect_face(&face);
             break;
         case 'c':
             count = 0;
+            detect_face(&face);
             break;
         case 'n':
             night_mode ^= 1;
