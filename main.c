@@ -37,11 +37,12 @@ int main(int argc, char **argv) {
     CvSeq *seq;
     CvMemStorage *storage;
 
-#ifdef FROMFILE
-    CvCapture* capture = cvCaptureFromFile( argv[2] );
-#else
-    CvCapture* capture = cvCaptureFromCAM( CV_CAP_ANY );
-#endif
+    CvCapture* capture;
+    if(argc == 1)
+        capture = cvCaptureFromCAM( CV_CAP_ANY );
+    else
+        capture = cvCaptureFromFile( argv[2] );
+
 
     if( !capture ) {
                 fprintf( stderr, "ERROR: capture is NULL \n" );
