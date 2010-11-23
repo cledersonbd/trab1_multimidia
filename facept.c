@@ -15,8 +15,8 @@
 #include <pthread.h>
 
 #define FACE_DETECT_STEP 3
-#define WINSIZEX 400
-#define WINSIZEY 210
+#define WINSIZEX 640
+#define WINSIZEY 310
 #define MOV_LIMIT 5
 
 #define handle_error_en(en, msg) \
@@ -49,6 +49,7 @@ int night_mode = 0;
 int flags = 0;
 int add_remove_pt = 0;
 CvPoint pt[30];
+int midx=0,midy=0,oldmidx=0,oldmidy=0;
 
 void * detect_face (void *param) {
 
@@ -69,8 +70,10 @@ void * detect_face (void *param) {
     img = cvCreateImage( cvGetSize(face->img), 8, 3 );
     cvCopy( face->img, img, 0 );
 
+
     CvSeq* faces = cvHaarDetectObjects( img, cascade, storage,
                                  1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40) );
+    cvReleaseImage(&img);
     if(faces->total > 0) {
         face->detected =1;
 
@@ -85,43 +88,72 @@ void * detect_face (void *param) {
 
      }else { face->detected=0;}
 
-      // Draw the rectangle in the input image
-      //cvRectangle( img, face->pt1, face->pt2, CV_RGB(255,0,0), 3, 8, 0 );
-
       
 
-    if(count < 12) {
+    if(count < 16 && face->detected == 1) {
         add_remove_pt=0;
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+4);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-4);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+8);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-8);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-        if(count + add_remove_pt < 12)
+        if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-    //points[1][count++] = cvPointTo32f(pt);
-      //      cvFindCornerSubPix( grey, points[1] + count - 1, 1,
-      //          cvSize(win_size,win_size), cvSize(-1,-1),
-       //         cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03));
+
+        if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
+        if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
+        if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
+        if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
+
+
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y+4);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y-4);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+8 , pt[count].y);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-8 , pt[count].y);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y+8);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y-8);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y+4);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y-4);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y+4);
+     //   if(count + add_remove_pt < 12)
+     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y-4);
+
     }
 
 //  }
@@ -151,20 +183,21 @@ int main( int argc, char** argv )
     pthread_attr_t attr;
     pthread_t thread;
     IplImage *foto,*wind;
-    int s;
+    int s,i;
     CvPoint2D64f razao;
-    CvPoint cabeca, margemTL, margemOLD;
     struct face_s face = { .detected = 0, .img = NULL, .num_frames = 0 };
     CvSize ROI, foto_size,cam;
 
     foto = cvLoadImage(argv[1], -1);
     foto_size = cvGetSize(foto);
 
+    for(i=0;i<30;i++) {
+        pt[i].x = 0;
+        pt[i].y = 0;
+    }
+
     razao.x = (double) foto_size.width/ROI.width ;
     razao.y = (double) foto_size.height/ROI.height ;
-
-    margemOLD.x = - MOV_LIMIT - 1;
-    margemOLD.y = - MOV_LIMIT - 1;
 
     cvNamedWindow( "foto", 1 );
 
@@ -207,10 +240,10 @@ int main( int argc, char** argv )
     cvNamedWindow( "LkDemo", 1 );
     cvSetMouseCallback( "LkDemo", on_mouse, 0 );
 
-    s = pthread_attr_init(&attr);
-    if (s != 0)
-       handle_error_en(s, "pthread_attr_init");
-
+//    s = pthread_attr_init(&attr);
+//    if (s != 0)
+//       handle_error_en(s, "pthread_attr_init");
+//
 //    s = pthread_create(&thread, &attr,
 //                       &detect_face, &face);
 //    if (s != 0)
@@ -223,8 +256,10 @@ int main( int argc, char** argv )
         IplImage* frame = 0;
         int i, k, c;
 
+usleep(30000);
         frame = cvQueryFrame( capture );
-    cam = cvGetSize(frame);
+        cam = cvGetSize(frame);
+
         if( !frame )
             break;
 
@@ -247,7 +282,7 @@ int main( int argc, char** argv )
         cvCvtColor( image, grey, CV_BGR2GRAY );
         face.img = image;
 
-if(count < 10 && face.num_frames % 5 == 0)
+if(count < 9 && face.num_frames % 3 == 0)
 detect_face(&face);
 
         if( need_to_init )
@@ -273,24 +308,31 @@ detect_face(&face);
         else if( count > 0 )
         {
 
-            int midx=0,midy=0;
+            midx = midy = 0;
             for( i = k = 0; i < count; i++ ) {
                 midx += points[1][i].x;
                 midy += points[1][i].y;
+
             }
             midx /= count;
             midy /= count;
+
+            if( abs(midx-oldmidx) < 3) midx=oldmidx;
+            if( abs(midy-oldmidy) < 3) midy=oldmidy;
+
             cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
 
-            cabeca.x = midx;
-            cabeca.y = midy;
+            if( abs(midx-oldmidx) < 3) midx=oldmidx;
 
-
-//printf("%d - %d - %d\n", (float) foto_size.width/100*( (float) midx/cam.width*100 ), midx, cam.width );
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
-            //cvSetImageROI(wind, cvRect( midx/WINSIZEX*razao.x, 0, WINSIZEX , WINSIZEY ));
+            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) );
+            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) );
+            if(pixx + WINSIZEX > foto_size.width) pixx = foto_size.width - WINSIZEX;
+            if(pixy + WINSIZEY > foto_size.height) pixy = foto_size.height - WINSIZEY;
+            cvSetImageROI(wind, cvRect( pixx-1, pixy-1 , WINSIZEX , WINSIZEY ));
             cvShowImage( "foto", wind );
+            cvReleaseImage(&wind);
 
             int i,k;
             for( i = k = 0; i < count; i++ ) {
