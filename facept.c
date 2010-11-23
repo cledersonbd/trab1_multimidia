@@ -15,8 +15,8 @@
 #include <pthread.h>
 
 #define FACE_DETECT_STEP 3
-#define WINSIZEX 640
-#define WINSIZEY 310
+#define WINSIZEX 640.0
+#define WINSIZEY 310.0
 #define MOV_LIMIT 5
 
 #define handle_error_en(en, msg) \
@@ -27,7 +27,7 @@ const char* cascade_name = "haarcascade_frontalface_alt.xml";
 struct face_s {
     IplImage *img;
     CvPoint pt1, pt2;
-    int area;
+    float area;
     int detected;
     int num_frames;
 };
@@ -49,7 +49,8 @@ int night_mode = 0;
 int flags = 0;
 int add_remove_pt = 0;
 CvPoint pt[30];
-int midx=0,midy=0,oldmidx=0,oldmidy=0,minx=0,miny=0,maxx=0,maxy=0,zscale=1,area=0;
+int midx=0,midy=0,oldmidx=0,oldmidy=0,minx=0,miny=0,maxx=0,maxy=0;
+float zscale=1.5,area=0;
 
 void * detect_face (void *param) {
 
@@ -333,8 +334,10 @@ detect_face(&face);
             midx /= count;
             midy /= count;
 
-            int newarea = (maxx - minx) * (maxy - miny);
-            printf("nova area: %d - area: %d\n", newarea, area);
+            float newarea = (maxx - minx) * (maxy - miny);
+            if(area>0)
+                if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
+                else zscale = 1;
 
             if( abs(midx-oldmidx) < 3) midx=oldmidx;
             if( abs(midy-oldmidy) < 3) midy=oldmidy;
@@ -345,14 +348,14 @@ detect_face(&face);
 
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
-            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX/2;
-            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY/2;
+            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX*zscale/2;
+            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY*zscale/2;
 
             if(pixx < 0) pixx = 0;
-            if(pixx +WINSIZEX > foto_size.width ) pixx = foto_size.width - WINSIZEX;
-            if(pixy +WINSIZEY > foto_size.height ) pixy = foto_size.height - WINSIZEY;
+            if(pixx +WINSIZEX*zscale > foto_size.width ) pixx = foto_size.width - WINSIZEX*zscale;
+            if(pixy +WINSIZEY*zscale > foto_size.height ) pixy = foto_size.height - WINSIZEY*zscale;
             if(pixy < 0 ) pixy = 0;
-            cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX , WINSIZEY ));
+            cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX*zscale , WINSIZEY*zscale ));
 printf("pixx %d  all %d\n", pixx, foto_size.width);
 printf("pixy %d  all %d\n", pixy, foto_size.height);
             cvShowImage( "foto", wind );
