@@ -49,7 +49,7 @@ int night_mode = 0;
 int flags = 0;
 int add_remove_pt = 0;
 CvPoint pt[30];
-int midx=0,midy=0,oldmidx=0,oldmidy=0;
+int midx=0,midy=0,oldmidx=0,oldmidy=0,minx=0,miny=0,maxx=0,maxy=0,zscale=1,area=0;
 
 void * detect_face (void *param) {
 
@@ -127,6 +127,16 @@ void * detect_face (void *param) {
       pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
         if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
+
+            minx = maxx = pt[0].x;
+            miny = maxy = pt[0].y;
+            for( i = 0; i < add_remove_pt; i++ ) {
+                if(points[1][i].x < minx) minx = points[1][i].x;
+                if(points[1][i].x > maxx) maxx = points[1][i].x;
+                if(points[1][i].y < miny) miny = points[1][i].y;
+                if(points[1][i].y > maxy) maxy = points[1][i].y;
+            }
+            area = (maxx - minx) * (maxy - miny);
 
 
      //   if(count + add_remove_pt < 12)
@@ -309,13 +319,22 @@ detect_face(&face);
         {
 
             midx = midy = 0;
+            minx = maxx = points[1][0].x;
+            miny = maxy = points[1][0].y;
             for( i = k = 0; i < count; i++ ) {
                 midx += points[1][i].x;
                 midy += points[1][i].y;
+                if(points[1][i].x < minx) minx = points[1][i].x;
+                if(points[1][i].x > maxx) maxx = points[1][i].x;
+                if(points[1][i].y < miny) miny = points[1][i].y;
+                if(points[1][i].y > maxy) maxy = points[1][i].y;
 
             }
             midx /= count;
             midy /= count;
+
+            int newarea = (maxx - minx) * (maxy - miny);
+            printf("nova area: %d - area: %d\n", newarea, area);
 
             if( abs(midx-oldmidx) < 3) midx=oldmidx;
             if( abs(midy-oldmidy) < 3) midy=oldmidy;
@@ -328,7 +347,7 @@ detect_face(&face);
             cvCopy(foto, wind, NULL);
             int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX/2;
             int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY/2;
-            //if(pixx + WINSIZEX/2 > foto_size.width) pixx = foto_size.width - WINSIZEX;
+
             if(pixx < 0) pixx = 0;
             if(pixx +WINSIZEX > foto_size.width ) pixx = foto_size.width - WINSIZEX;
             if(pixy +WINSIZEY > foto_size.height ) pixy = foto_size.height - WINSIZEY;
@@ -342,9 +361,9 @@ printf("pixy %d  all %d\n", pixy, foto_size.height);
             int i,k;
             for( i = k = 0; i < count; i++ ) {
 
-                if( (int) points[1][i].x-midx > 40 || (int)points[1][i].x-midx < -40)
+                if( (int) points[1][i].x-midx > 50 || (int)points[1][i].x-midx < -50)
                     continue;
-                if( (int) points[1][i].y-midy > 40 || (int)points[1][i].y-midy < -40)
+                if( (int) points[1][i].y-midy > 50 || (int)points[1][i].y-midy < -50)
                     continue;
                 points[1][k++] = points[1][i];
             }
