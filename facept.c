@@ -35,17 +35,13 @@ struct face_s {
 CvMemStorage* storage = 0;
 CvHaarClassifierCascade* cascade = 0;
 
-
 IplImage *image = 0, *grey = 0, *prev_grey = 0, *pyramid = 0, *prev_pyramid = 0, *swap_temp;
 
-pthread_mutex_t fakeMutex = PTHREAD_MUTEX_INITIALIZER;
 int win_size = 10;
 const int MAX_COUNT = 500;
 CvPoint2D32f* points[2] = {0,0}, *swap_points;
 char* status = 0;
 int count = 0;
-int need_to_init = 0;
-int night_mode = 0;
 int flags = 0;
 int add_remove_pt = 0;
 CvPoint pt[30];
@@ -61,113 +57,85 @@ void * detect_face (void *param) {
 
   face = (struct face_s *) param;
 
-//  for(;;) {
+  //if ( face->num_frames % FACE_DETECT_STEP != 0 ) continue;
 
-    //if ( face->num_frames % FACE_DETECT_STEP != 0 ) continue;
+  //if(face->img == NULL) { continue;}
+  if(face->img == NULL) { return;}
 
-    //if(face->img == NULL) { continue;}
-    if(face->img == NULL) { return;}
-
-    img = cvCreateImage( cvGetSize(face->img), 8, 3 );
-    cvCopy( face->img, img, 0 );
+  img = cvCreateImage( cvGetSize(face->img), 8, 3 );
+  cvCopy( face->img, img, 0 );
 
 
-    CvSeq* faces = cvHaarDetectObjects( img, cascade, storage,
-                                 1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40) );
-    cvReleaseImage(&img);
-    if(faces->total > 0) {
-        face->detected =1;
+  CvSeq* faces = cvHaarDetectObjects( img, cascade, storage,
+                               1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40) );
+  cvReleaseImage(&img);
+  if(faces->total > 0) {
+      face->detected =1;
 
 
-      CvRect* r = (CvRect*)cvGetSeqElem( faces, 0 );
-      //Find the dimensions of the face,and scale it if necessary
-      face->pt1.x = r->x*scale;
-      face->pt2.x = (r->x+r->width)*scale;
-      face->pt1.y = r->y*scale;
-      face->pt2.y = (r->y+r->height)*scale;
-      face->area = (face->pt2.x - face->pt1.x) * (face->pt2.y - face->pt1.y);
+    CvRect* r = (CvRect*)cvGetSeqElem( faces, 0 );
+    //Find the dimensions of the face,and scale it if necessary
+    face->pt1.x = r->x*scale;
+    face->pt2.x = (r->x+r->width)*scale;
+    face->pt1.y = r->y*scale;
+    face->pt2.y = (r->y+r->height)*scale;
+    face->area = (face->pt2.x - face->pt1.x) * (face->pt2.y - face->pt1.y);
 
-     }else { face->detected=0;}
-
-      
-
-    if(count < 16 && face->detected == 1) {
-        add_remove_pt=0;
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+8);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-8);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
-        if(count + add_remove_pt < 16)
-      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
-
-            minx = maxx = pt[0].x;
-            miny = maxy = pt[0].y;
-            for( i = 0; i < add_remove_pt; i++ ) {
-                if(points[1][i].x < minx) minx = points[1][i].x;
-                if(points[1][i].x > maxx) maxx = points[1][i].x;
-                if(points[1][i].y < miny) miny = points[1][i].y;
-                if(points[1][i].y > maxy) maxy = points[1][i].y;
-            }
-            area = (maxx - minx) * (maxy - miny);
-
-
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y+4);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y-4);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+8 , pt[count].y);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-8 , pt[count].y);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y+8);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x , pt[count].y-8);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y+4);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y-4);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x+4 , pt[count].y+4);
-     //   if(count + add_remove_pt < 12)
-     // pt[count+add_remove_pt++] = cvPoint( pt[count].x-4 , pt[count].y-4);
-
+    } else { 
+        face->detected=0;
     }
 
-//  }
+    
+
+  /* Se detectou a face, adiciona pontos no centro e arredores para tracking */
+  if(count < 16 && face->detected == 1) {
+      add_remove_pt=0;
+      if(count + add_remove_pt < 16)
+       pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
+      if(count + add_remove_pt < 16)
+        pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y);
+      if(count + add_remove_pt < 16)
+       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y);
+      if(count + add_remove_pt < 16)
+       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+4);
+      if(count + add_remove_pt < 16)
+        pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y);
+      if(count + add_remove_pt < 16)
+       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+8);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-8);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
+      if(count + add_remove_pt < 16)
+         pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
+      if(count + add_remove_pt < 16)
+     pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
+      if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
+
+      minx = maxx = pt[0].x;
+      miny = maxy = pt[0].y;
+      for( i = 0; i < add_remove_pt; i++ ) {
+          if(points[1][i].x < minx) minx = points[1][i].x;
+          if(points[1][i].x > maxx) maxx = points[1][i].x;
+          if(points[1][i].y < miny) miny = points[1][i].y;
+          if(points[1][i].y > maxy) maxy = points[1][i].y;
+      }
+      area = (maxx - minx) * (maxy - miny);
+
+  }
 
 } //end detect_face
 
@@ -194,7 +162,7 @@ int main( int argc, char** argv )
     pthread_attr_t attr;
     pthread_t thread;
     IplImage *foto,*wind;
-    int s,i;
+    int s,i,k,c;
     CvPoint2D64f razao;
     struct face_s face = { .detected = 0, .img = NULL, .num_frames = 0 };
     CvSize ROI, foto_size,cam;
@@ -265,9 +233,7 @@ int main( int argc, char** argv )
     for(;;)
     {
         IplImage* frame = 0;
-        int i, k, c;
 
-usleep(30000);
         frame = cvQueryFrame( capture );
         cam = cvGetSize(frame);
 
@@ -293,32 +259,14 @@ usleep(30000);
         cvCvtColor( image, grey, CV_BGR2GRAY );
         face.img = image;
 
-if(count < 6 && face.num_frames % 8 == 0)
-detect_face(&face);
+        /* If there are only 6 points, detect face */
+        if(count < 6 && face.num_frames % 8 == 0)
+            detect_face(&face);
 
-        if( need_to_init )
-        {
+        if( count > 0 ) {
 
-            /* automatic initialization */
-            IplImage* eig = cvCreateImage( cvGetSize(grey), 32, 1 );
-            IplImage* temp = cvCreateImage( cvGetSize(grey), 32, 1 );
-            double quality = 0.01;
-            double min_distance = 5;
-
-            count = MAX_COUNT;
-            cvGoodFeaturesToTrack( grey, eig, temp, points[1], &count,
-                                   quality, min_distance, 0, 3, 0, 0.04 );
-            cvFindCornerSubPix( grey, points[1], count,
-                cvSize(win_size,win_size), cvSize(-1,-1),
-                cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03));
-            cvReleaseImage( &eig );
-            cvReleaseImage( &temp );
-
-            add_remove_pt = 0;
-        }
-        else if( count > 0 )
-        {
-
+            /* Find medium value of the points 
+             * Also calculate the area using the edge points */
             midx = midy = 0;
             minx = maxx = points[1][0].x;
             miny = maxy = points[1][0].y;
@@ -335,16 +283,14 @@ detect_face(&face);
             midy /= count;
 
             float newarea = (maxx - minx) * (maxy - miny);
+            printf("area %f   new area %f\n", area, newarea);
             if(area>0)
                 if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
-                else zscale = 1;
 
-            if( abs(midx-oldmidx) < 3) midx=oldmidx;
-            if( abs(midy-oldmidy) < 3) midy=oldmidy;
+            if( abs(midx-oldmidx) < 4) midx=oldmidx;
+            if( abs(midy-oldmidy) < 4) midy=oldmidy;
 
             cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
-
-            if( abs(midx-oldmidx) < 3) midx=oldmidx;
 
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
@@ -356,8 +302,6 @@ detect_face(&face);
             if(pixy +WINSIZEY*zscale > foto_size.height ) pixy = foto_size.height - WINSIZEY*zscale;
             if(pixy < 0 ) pixy = 0;
             cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX*zscale , WINSIZEY*zscale ));
-printf("pixx %d  all %d\n", pixx, foto_size.width);
-printf("pixy %d  all %d\n", pixy, foto_size.height);
             cvShowImage( "foto", wind );
             cvReleaseImage(&wind);
 
@@ -399,9 +343,10 @@ printf("pixy %d  all %d\n", pixy, foto_size.height);
             count = k;
         }
 
-        if( add_remove_pt && count < MAX_COUNT )
-        {
+        /* Adiciona pontos para tracking */
+        if( add_remove_pt && count < MAX_COUNT ) {
             int i;
+            count = 0;
             for(i=0;i<add_remove_pt;i++)
                 points[1][count++] = cvPointTo32f(pt[i]);
             cvFindCornerSubPix( grey, points[1] + count - 1, 1,
@@ -417,24 +362,16 @@ printf("pixy %d  all %d\n", pixy, foto_size.height);
         CV_SWAP( prev_grey, grey, swap_temp );
         CV_SWAP( prev_pyramid, pyramid, swap_temp );
         CV_SWAP( points[0], points[1], swap_points );
-        need_to_init = 0;
         cvShowImage( "LkDemo", image );
         face.num_frames++;
 
         c = cvWaitKey(10);
-        if( (char)c == 27 )
-            break;
-        switch( (char) c )
-        {
-        case 'r':
-            need_to_init = 1;
-            break;
+        if( (char)c == 27 ) break;
+
+        switch( (char) c ) {
         case 'c':
             count = 0;
             detect_face(&face);
-            break;
-        case 'n':
-            night_mode ^= 1;
             break;
         default:
             ;
