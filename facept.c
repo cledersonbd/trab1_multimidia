@@ -34,7 +34,6 @@ struct face_s {
 
 CvMemStorage* storage = 0;
 CvHaarClassifierCascade* cascade = 0;
-
 IplImage *image = 0, *grey = 0, *prev_grey = 0, *pyramid = 0, *prev_pyramid = 0, *swap_temp;
 
 int win_size = 10;
@@ -57,21 +56,19 @@ void * detect_face (void *param) {
 
   face = (struct face_s *) param;
 
-  //if ( face->num_frames % FACE_DETECT_STEP != 0 ) continue;
-
-  //if(face->img == NULL) { continue;}
-  if(face->img == NULL) { return;}
+  if(face->img == NULL)
+    return;
 
   img = cvCreateImage( cvGetSize(face->img), 8, 3 );
   cvCopy( face->img, img, 0 );
 
-
   CvSeq* faces = cvHaarDetectObjects( img, cascade, storage,
                                1.1, 2, CV_HAAR_DO_CANNY_PRUNING, cvSize(40, 40) );
   cvReleaseImage(&img);
-  if(faces->total > 0) {
-      face->detected =1;
 
+  if(faces->total > 0) {
+
+    face->detected =1;
 
     CvRect* r = (CvRect*)cvGetSeqElem( faces, 0 );
     //Find the dimensions of the face,and scale it if necessary
@@ -81,59 +78,57 @@ void * detect_face (void *param) {
     face->pt2.y = (r->y+r->height)*scale;
     face->area = (face->pt2.x - face->pt1.x) * (face->pt2.y - face->pt1.y);
 
-    } else { 
-        face->detected=0;
-    }
-
-    
+  } else { 
+      face->detected=0;
+  }
 
   /* Se detectou a face, adiciona pontos no centro e arredores para tracking */
   if(count < 16 && face->detected == 1) {
-      add_remove_pt=0;
-      if(count + add_remove_pt < 16)
-       pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
-      if(count + add_remove_pt < 16)
-        pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y);
-      if(count + add_remove_pt < 16)
-       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y);
-      if(count + add_remove_pt < 16)
-       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+4);
-      if(count + add_remove_pt < 16)
-        pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-4);
-      if(count + add_remove_pt < 16)
+    add_remove_pt=0;
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y);
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y);
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+4);
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-4);
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y);
-      if(count + add_remove_pt < 16)
-       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+8);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y+8);
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x , pt[0].y-8);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-      if(count + add_remove_pt < 16)
-         pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-      if(count + add_remove_pt < 16)
-     pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x+4 , pt[0].y+4);
+    if(count + add_remove_pt < 16)
+      pt[add_remove_pt++] = cvPoint( pt[0].x-4 , pt[0].y-4);
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x+8 , pt[0].y+4);
-      if(count + add_remove_pt < 16)
+    if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
 
-      minx = maxx = pt[0].x;
-      miny = maxy = pt[0].y;
-      for( i = 0; i < add_remove_pt; i++ ) {
-          if(points[1][i].x < minx) minx = points[1][i].x;
-          if(points[1][i].x > maxx) maxx = points[1][i].x;
-          if(points[1][i].y < miny) miny = points[1][i].y;
-          if(points[1][i].y > maxy) maxy = points[1][i].y;
-      }
-      area = (maxx - minx) * (maxy - miny);
+    minx = maxx = pt[0].x;
+    miny = maxy = pt[0].y;
+    for( i = 0; i < add_remove_pt; i++ ) {
+        if(points[1][i].x < minx) minx = points[1][i].x;
+        if(points[1][i].x > maxx) maxx = points[1][i].x;
+        if(points[1][i].y < miny) miny = points[1][i].y;
+        if(points[1][i].y > maxy) maxy = points[1][i].y;
+    }
+    area = (maxx - minx) * (maxy - miny);
 
   }
 
@@ -155,32 +150,26 @@ void on_mouse( int event, int x, int y, int flags, void* param )
 }
 
 
-int main( int argc, char** argv )
-{
+int main( int argc, char** argv ) {
 
     CvCapture* capture = 0;
     pthread_attr_t attr;
     pthread_t thread;
     IplImage *foto,*wind;
     int s,i,k,c;
-    CvPoint2D64f razao;
     struct face_s face = { .detected = 0, .img = NULL, .num_frames = 0 };
     CvSize ROI, foto_size,cam;
 
     foto = cvLoadImage(argv[1], -1);
     foto_size = cvGetSize(foto);
 
+    /* Init points array */
     for(i=0;i<30;i++) {
         pt[i].x = 0;
         pt[i].y = 0;
     }
 
-    razao.x = (double) foto_size.width/ROI.width ;
-    razao.y = (double) foto_size.height/ROI.height ;
-
     cvNamedWindow( "foto", 1 );
-
-
 
     if( argc == 2 )
         capture = cvCaptureFromCAM( 0 );
@@ -188,36 +177,25 @@ int main( int argc, char** argv )
         capture = cvCaptureFromAVI( argv[2] );
 
 
-    if( !capture )
-    {
+    if( !capture ) {
         fprintf(stderr,"Could not initialize capturing...\n");
         return -1;
     }
 
     storage = cvCreateMemStorage(0);
     cascade = (CvHaarClassifierCascade*)cvLoad( cascade_name, 0, 0, 0 );
-    // Check whether the cascade has loaded successfully. Else report and error and quit
     cvClearMemStorage( storage );
     if( !cascade ) {
             fprintf( stderr, "ERROR: Could not load classifier cascade\n" );
             return;
     }
 
-
-    /* print a welcome message, and the OpenCV version */
-    printf ("Welcome to lkdemo, using OpenCV version %s (%d.%d.%d)\n",
-	    CV_VERSION,
-	    CV_MAJOR_VERSION, CV_MINOR_VERSION, CV_SUBMINOR_VERSION);
-
     printf( "Hot keys: \n"
             "\tESC - quit the program\n"
-            "\tr - auto-initialize tracking\n"
-            "\tc - delete all the points\n"
-            "\tn - switch the \"night\" mode on/off\n"
-            "To add/remove a feature point click it\n" );
+            "\tc - delete all the points\n");
 
-    cvNamedWindow( "LkDemo", 1 );
-    cvSetMouseCallback( "LkDemo", on_mouse, 0 );
+    cvNamedWindow( "Window", 1 );
+    //cvSetMouseCallback( "Window", on_mouse, 0 );
 
 //    s = pthread_attr_init(&attr);
 //    if (s != 0)
@@ -237,11 +215,9 @@ int main( int argc, char** argv )
         frame = cvQueryFrame( capture );
         cam = cvGetSize(frame);
 
-        if( !frame )
-            break;
+        if( !frame ) break;
 
-        if( !image )
-        {
+        if( !image ) {
             /* allocate all the buffers */
             image = cvCreateImage( cvGetSize(frame), 8, 3 );
             image->origin = frame->origin;
@@ -287,27 +263,34 @@ int main( int argc, char** argv )
             if(area>0)
                 if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
 
+
+            /* If the middle point moved few pixels DO NOT move window */
             if( abs(midx-oldmidx) < 4) midx=oldmidx;
             if( abs(midy-oldmidy) < 4) midy=oldmidy;
 
+            /* Draw middle point in window */
             cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
 
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
-            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX*zscale/2;
-            int pixy =  foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY*zscale/2;
 
+            /* Margin X of the foto will be (Number of pixels per one percent)*(Percent of middle point in camera) */
+            int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX*zscale/2;
+            int pixy = foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY*zscale/2;
+
+            /* If we reach the border of the image, DO NOT let move outside */
             if(pixx < 0) pixx = 0;
             if(pixx +WINSIZEX*zscale > foto_size.width ) pixx = foto_size.width - WINSIZEX*zscale;
             if(pixy +WINSIZEY*zscale > foto_size.height ) pixy = foto_size.height - WINSIZEY*zscale;
             if(pixy < 0 ) pixy = 0;
+
+            /* ROI of window */
             cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX*zscale , WINSIZEY*zscale ));
             cvShowImage( "foto", wind );
             cvReleaseImage(&wind);
 
-            int i,k;
+            /* Remove points too far of the medium point */
             for( i = k = 0; i < count; i++ ) {
-
                 if( (int) points[1][i].x-midx > 50 || (int)points[1][i].x-midx < -50)
                     continue;
                 if( (int) points[1][i].y-midy > 50 || (int)points[1][i].y-midy < -50)
@@ -320,19 +303,9 @@ int main( int argc, char** argv )
                 points[0], points[1], count, cvSize(win_size,win_size), 5, status, 0,
                 cvTermCriteria(CV_TERMCRIT_ITER,20,0.03), flags );
             flags |= CV_LKFLOW_PYR_A_READY;
-            for( i = k = 0; i < count; i++ )
-            {
-                if( add_remove_pt )
-                {
-                    double dx = pt[0].x - points[1][i].x;
-                    double dy = pt[0].y - points[1][i].y;
 
-                    if( dx*dx + dy*dy <= 25 )
-                    {
-                        add_remove_pt = 0;
-                        continue;
-                    }
-                }
+            /* Remove untracked points and draw the remaining */
+            for( i = k = 0; i < count; i++ ) {
 
                 if( !status[i] )
                     continue;
@@ -383,7 +356,3 @@ int main( int argc, char** argv )
 
     return 0;
 }
-
-#ifdef _EiC
-main(1,"lkdemo.c");
-#endif
