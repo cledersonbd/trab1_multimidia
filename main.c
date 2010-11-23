@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
     if(argc == 1)
         capture = cvCaptureFromCAM( CV_CAP_ANY );
     else
-        capture = cvCaptureFromFile( argv[2] );
+        capture = cvCaptureFromAVI( argv[2] );
 
 
     if( !capture ) {

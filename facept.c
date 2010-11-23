@@ -59,11 +59,12 @@ void * detect_face (void *param) {
 
   face = (struct face_s *) param;
 
-  for(;;) {
+//  for(;;) {
 
-    if ( face->num_frames % FACE_DETECT_STEP != 0 ) continue;
+    //if ( face->num_frames % FACE_DETECT_STEP != 0 ) continue;
 
-    if(face->img == NULL) { continue;}
+    //if(face->img == NULL) { continue;}
+    if(face->img == NULL) { return;}
 
     img = cvCreateImage( cvGetSize(face->img), 8, 3 );
     cvCopy( face->img, img, 0 );
@@ -123,7 +124,7 @@ void * detect_face (void *param) {
        //         cvTermCriteria(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS,20,0.03));
     }
 
-  }
+//  }
 
 } //end detect_face
 
@@ -210,10 +211,10 @@ int main( int argc, char** argv )
     if (s != 0)
        handle_error_en(s, "pthread_attr_init");
 
-    s = pthread_create(&thread, &attr,
-                       &detect_face, &face);
-    if (s != 0)
-        handle_error_en(s, "pthread_create");
+//    s = pthread_create(&thread, &attr,
+//                       &detect_face, &face);
+//    if (s != 0)
+//        handle_error_en(s, "pthread_create");
 
     foto = cvLoadImage(argv[1], -1);
 
@@ -246,6 +247,8 @@ int main( int argc, char** argv )
         cvCvtColor( image, grey, CV_BGR2GRAY );
         face.img = image;
 
+if(count < 10 && face.num_frames % 5 == 0)
+detect_face(&face);
 
         if( need_to_init )
         {
