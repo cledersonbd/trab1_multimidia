@@ -286,7 +286,7 @@ int main( int argc, char** argv )
 //printf("%d - %d - %d\n", (float) foto_size.width/100*( (float) midx/cam.width*100 ), midx, cam.width );
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, wind, NULL);
-            cvSetImageROI(wind, cvRect( midx/WINSIZEX*razao.x, 0, WINSIZEX , WINSIZEY ));
+            //cvSetImageROI(wind, cvRect( midx/WINSIZEX*razao.x, 0, WINSIZEX , WINSIZEY ));
             cvShowImage( "foto", wind );
 
             int i,k;
