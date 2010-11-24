@@ -1,6 +1,3 @@
-/* Demo of modified Lucas-Kanade optical flow algorithm.
-   See the printf below */
-
 #include "cv.h"
 #include "highgui.h"
 #include <stdio.h>
@@ -12,7 +9,6 @@
 #include <time.h>
 #include <ctype.h>
 #include <errno.h>
-#include <pthread.h>
 
 #define FACE_DETECT_STEP 3
 #define WINSIZEX 780.0
@@ -121,7 +117,6 @@ void * detect_face(void *param) {
     if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
 
-
   }
 
   return NULL;
@@ -147,8 +142,6 @@ void on_mouse( int event, int x, int y, int flags, void* param )
 int main( int argc, char** argv ) {
 
     CvCapture* capture = 0;
-    //pthread_attr_t attr;
-    //pthread_t thread;
     IplImage *foto,*wind;
     int i,k,c;
     struct face_s face = { .detected = 0, .img = NULL, .num_frames = 0 };
@@ -185,7 +178,6 @@ int main( int argc, char** argv ) {
     }
 
     cvNamedWindow( "Window", 1 );
-    //cvSetMouseCallback( "Window", on_mouse, 0 );
 
     foto = cvLoadImage(argv[1], -1);
 
@@ -216,8 +208,8 @@ int main( int argc, char** argv ) {
         cvCvtColor( image, grey, CV_BGR2GRAY );
         face.img = image;
 
-        /* If there are only 6 points, detect face */
-        if(count < 6 && face.num_frames % 8 == 0)
+        /* If there are 6 points or less, detect face */
+        if(count < 8 && face.num_frames % 8 == 0)
             detect_face(&face);
 
         if( count > 0 ) {
@@ -256,14 +248,6 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             }
             distmed /= numdist;
 
-            //if(!isnan(distmed)) zscale = 1 + distmed/10;
-
-            //float newarea = (maxx - minx) * (maxy - miny);
-            //printf("area %f   new area %f\n", area, newarea);
-            //if(area>0)
-            //    if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
-
-
             /* If the middle point moved few pixels DO NOT move window */
             if( abs(midx-oldmidx) < 4) midx=oldmidx;
             if( abs(midy-oldmidy) < 4) midy=oldmidy;
@@ -271,10 +255,13 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             /* Draw middle point in window */
             IplImage *tmp = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, tmp, NULL);
+	double scale;
             if(distmed > 0.1) {
-                double scale = (distmed/140.0+0.7);
+		// Valores empiricos
+                scale = pow((distmed/140.0+0.7),4);
 
-                if(scale < 0.5) scale=0.5;
+		// Controle do calculo da escala
+                if(scale < 0.1) scale=0.1;
                 if(scale > 1.0) scale=1;
 
                 cvSetImageROI(tmp, cvRect( (foto_size.width - foto_size.width*(scale))/2, (foto_size.height - foto_size.height*(scale))/2 , foto_size.width*(scale)  , foto_size.height*(scale) ));
@@ -302,12 +289,15 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             /* ROI of window */
             cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX*zscale , WINSIZEY*zscale ));
 
+	int vfar = 50;		
+
+		if(scale > 0.7) vfar = 120;
 
             /* Remove points too far of the medium point */
             for( i = k = 0; i < count; i++ ) {
-                if( (int) points[1][i].x-midx > 50 || (int)points[1][i].x-midx < -50)
+                if( (int) points[1][i].x-midx > vfar || (int)points[1][i].x-midx < -vfar)
                     continue;
-                if( (int) points[1][i].y-midy > 50 || (int)points[1][i].y-midy < -50)
+                if( (int) points[1][i].y-midy > vfar || (int)points[1][i].y-midy < -vfar)
                     continue;
                 points[1][k++] = points[1][i];
             }
