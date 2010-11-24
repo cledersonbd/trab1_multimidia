@@ -14,6 +14,8 @@
 #define WINSIZEX 780.0
 #define WINSIZEY 380.0
 #define MOV_LIMIT 5
+#define LIM_LOST_PTS 8
+
 
 #define handle_error_en(en, msg) \
         do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
@@ -80,7 +82,7 @@ void * detect_face(void *param) {
   }
 
   /* Se detectou a face, adiciona pontos no centro e arredores para tracking */
-  if(count < 16 && face->detected == 1) {
+  if(count < LIM_LOST_PTS && face->detected == 1) {
     add_remove_pt=0;
     if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( (face->pt1.x+face->pt2.x)/2, (face->pt1.y+face->pt2.y)/2);
@@ -209,7 +211,7 @@ int main( int argc, char** argv ) {
         face.img = image;
 
         /* If there are 6 points or less, detect face */
-        if(count < 8 && face.num_frames % 8 == 0)
+        if(count < LIM_LOST_PTS && face.num_frames % 8 == 0)
             detect_face(&face);
 
         if( count > 0 ) {
