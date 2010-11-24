@@ -264,7 +264,7 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             }
             distmed /= numdist;
             printf("distmed %f\n", distmed);
-            zscale = 1 + distmed/10;
+            if(!isnan(distmed)) zscale = 1 + distmed/10;
 
             //float newarea = (maxx - minx) * (maxy - miny);
             //printf("area %f   new area %f\n", area, newarea);
