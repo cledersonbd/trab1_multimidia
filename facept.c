@@ -46,8 +46,10 @@ int add_remove_pt = 0;
 CvPoint pt[30];
 int midx=0,midy=0,oldmidx=0,oldmidy=0,minx=0,miny=0,maxx=0,maxy=0;
 float zscale=1.5,area=0;
+double distancias[10];
+double distmed,distmedold=-1;
 
-void * detect_face (void *param) {
+void * detect_face(void *param) {
 
   struct face_s *face;
   int i;
@@ -190,10 +192,6 @@ int main( int argc, char** argv ) {
             return;
     }
 
-    printf( "Hot keys: \n"
-            "\tESC - quit the program\n"
-            "\tc - delete all the points\n");
-
     cvNamedWindow( "Window", 1 );
     //cvSetMouseCallback( "Window", on_mouse, 0 );
 
@@ -246,7 +244,7 @@ int main( int argc, char** argv ) {
             midx = midy = 0;
             minx = maxx = points[1][0].x;
             miny = maxy = points[1][0].y;
-            for( i = k = 0; i < count; i++ ) {
+            for( i = 0; i < count; i++ ) {
                 midx += points[1][i].x;
                 midy += points[1][i].y;
                 if(points[1][i].x < minx) minx = points[1][i].x;
@@ -258,8 +256,26 @@ int main( int argc, char** argv ) {
             midx /= count;
             midy /= count;
 
+
+            distmed = 0.0;
+            int numdist = 0;
+            for( i = 0; i < count; i++ ) {
+                for( k = i; k < count; k++ ) {
+                    if(i==k || status[i] == 0) continue;
+                    double dist = sqrt( pow(points[1][i].x-points[1][k].x, 2) + pow(points[1][i].y-points[1][k].y, 2)  );
+                    if(!isnan(dist)) {
+                    distmed += dist;
+                    numdist++;
+                    } else {
+printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].x,i,(int)points[1][k].x,k, (int)points[1][i].y,i,(int)points[1][k].y,k);
+                    }
+                }
+            }
+            distmed /= numdist;
+            printf("distmed %f\n", distmed);
+
             float newarea = (maxx - minx) * (maxy - miny);
-            printf("area %f   new area %f\n", area, newarea);
+            //printf("area %f   new area %f\n", area, newarea);
             if(area>0)
                 if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
 
@@ -335,7 +351,7 @@ int main( int argc, char** argv ) {
         CV_SWAP( prev_grey, grey, swap_temp );
         CV_SWAP( prev_pyramid, pyramid, swap_temp );
         CV_SWAP( points[0], points[1], swap_points );
-        cvShowImage( "LkDemo", image );
+        cvShowImage( "Window", image );
         face.num_frames++;
 
         c = cvWaitKey(10);
