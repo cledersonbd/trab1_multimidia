@@ -15,8 +15,8 @@
 #include <pthread.h>
 
 #define FACE_DETECT_STEP 3
-#define WINSIZEX 700.0
-#define WINSIZEY 340.0
+#define WINSIZEX 780.0
+#define WINSIZEY 380.0
 #define MOV_LIMIT 5
 
 #define handle_error_en(en, msg) \
@@ -52,14 +52,13 @@ double distmed,distmedold=-1;
 void * detect_face(void *param) {
 
   struct face_s *face;
-  int i;
   int scale = 1;
   IplImage *img;
 
   face = (struct face_s *) param;
 
   if(face->img == NULL)
-    return;
+    return NULL;
 
   img = cvCreateImage( cvGetSize(face->img), 8, 3 );
   cvCopy( face->img, img, 0 );
@@ -125,6 +124,8 @@ void * detect_face(void *param) {
 
   }
 
+  return NULL;
+
 } //end detect_face
 
 void on_mouse( int event, int x, int y, int flags, void* param )
@@ -146,12 +147,12 @@ void on_mouse( int event, int x, int y, int flags, void* param )
 int main( int argc, char** argv ) {
 
     CvCapture* capture = 0;
-    pthread_attr_t attr;
-    pthread_t thread;
+    //pthread_attr_t attr;
+    //pthread_t thread;
     IplImage *foto,*wind;
-    int s,i,k,c;
+    int i,k,c;
     struct face_s face = { .detected = 0, .img = NULL, .num_frames = 0 };
-    CvSize ROI, foto_size,cam;
+    CvSize foto_size,cam;
 
     foto = cvLoadImage(argv[1], -1);
     foto_size = cvGetSize(foto);
@@ -180,7 +181,7 @@ int main( int argc, char** argv ) {
     cvClearMemStorage( storage );
     if( !cascade ) {
             fprintf( stderr, "ERROR: Could not load classifier cascade\n" );
-            return;
+            return -1;
     }
 
     cvNamedWindow( "Window", 1 );
@@ -268,7 +269,6 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             if( abs(midy-oldmidy) < 4) midy=oldmidy;
 
             /* Draw middle point in window */
-            cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
             IplImage *tmp = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
             cvCopy(foto, tmp, NULL);
             if(distmed > 0.1) {
@@ -288,6 +288,7 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             cvCopy(tmp2, wind, NULL);
             cvReleaseImage(&tmp2);
 
+
             /* Margin X of the foto will be (Number of pixels per one percent)*(Percent of middle point in camera) */
             int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX*zscale/2;
             int pixy = foto_size.height/100*(  99.0 - (float)( (float)midy/cam.height*100.0) ) - WINSIZEY*zscale/2;
@@ -300,8 +301,7 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
 
             /* ROI of window */
             cvSetImageROI(wind, cvRect( pixx, pixy , WINSIZEX*zscale , WINSIZEY*zscale ));
-            cvShowImage( "foto", wind );
-            cvReleaseImage(&wind);
+
 
             /* Remove points too far of the medium point */
             for( i = k = 0; i < count; i++ ) {
@@ -328,6 +328,17 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
                 cvCircle( image, cvPointFrom32f(points[1][i]), 3, CV_RGB(0,255,0), -1, 8,0);
             }
             count = k;
+            cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
+
+            IplImage *tmp3 = cvCreateImage( cvSize(WINSIZEX, WINSIZEY), IPL_DEPTH_8U, 3);
+            cvCopy(wind, tmp3, NULL);
+            cvSetImageROI(tmp3, cvRect(0,0,200,150));
+            cvResize(image, tmp3, CV_INTER_LINEAR);
+            cvResetImageROI(tmp3);
+
+            cvShowImage( "foto", tmp3 );
+            cvReleaseImage(&tmp3);
+            cvReleaseImage(&wind);
         }
 
         /* Adiciona pontos para tracking */
@@ -366,7 +377,7 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
     }
 
     cvReleaseCapture( &capture );
-    cvDestroyWindow("LkDemo");
+    cvDestroyWindow("Window");
 
     return 0;
 }
