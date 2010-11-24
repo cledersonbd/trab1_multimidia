@@ -186,19 +186,10 @@ int main( int argc, char** argv ) {
     cvNamedWindow( "Window", 1 );
     //cvSetMouseCallback( "Window", on_mouse, 0 );
 
-//    s = pthread_attr_init(&attr);
-//    if (s != 0)
-//       handle_error_en(s, "pthread_attr_init");
-//
-//    s = pthread_create(&thread, &attr,
-//                       &detect_face, &face);
-//    if (s != 0)
-//        handle_error_en(s, "pthread_create");
-
     foto = cvLoadImage(argv[1], -1);
 
-    for(;;)
-    {
+    for(;;) {
+
         IplImage* frame = 0;
 
         frame = cvQueryFrame( capture );
@@ -263,7 +254,7 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
                 }
             }
             distmed /= numdist;
-            printf("distmed %f\n", distmed);
+
             //if(!isnan(distmed)) zscale = 1 + distmed/10;
 
             //float newarea = (maxx - minx) * (maxy - miny);
@@ -278,9 +269,24 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
 
             /* Draw middle point in window */
             cvCircle( image, cvPoint(midx,midy), 9, CV_RGB(0,0,255), -1, 8,0);
+            IplImage *tmp = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
+            cvCopy(foto, tmp, NULL);
+            if(distmed > 0.1) {
+                double scale = (distmed/140.0+0.7);
+
+                if(scale < 0.5) scale=0.5;
+                if(scale > 1.0) scale=1;
+
+                cvSetImageROI(tmp, cvRect( (foto_size.width - foto_size.width*(scale))/2, (foto_size.height - foto_size.height*(scale))/2 , foto_size.width*(scale)  , foto_size.height*(scale) ));
+            }
+
+            IplImage *tmp2 = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
+            cvResize(tmp, tmp2, CV_INTER_LINEAR);
+            cvReleaseImage(&tmp);
 
             wind = cvCreateImage(foto_size, IPL_DEPTH_8U, 3);
-            cvCopy(foto, wind, NULL);
+            cvCopy(tmp2, wind, NULL);
+            cvReleaseImage(&tmp2);
 
             /* Margin X of the foto will be (Number of pixels per one percent)*(Percent of middle point in camera) */
             int pixx = foto_size.width/100*( 99.0 - (float)( (float)midx/cam.width*100.0) ) - WINSIZEX*zscale/2;
