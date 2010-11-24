@@ -15,8 +15,8 @@
 #include <pthread.h>
 
 #define FACE_DETECT_STEP 3
-#define WINSIZEX 640.0
-#define WINSIZEY 310.0
+#define WINSIZEX 700.0
+#define WINSIZEY 340.0
 #define MOV_LIMIT 5
 
 #define handle_error_en(en, msg) \
@@ -45,7 +45,7 @@ int flags = 0;
 int add_remove_pt = 0;
 CvPoint pt[30];
 int midx=0,midy=0,oldmidx=0,oldmidy=0,minx=0,miny=0,maxx=0,maxy=0;
-float zscale=1.5,area=0;
+float zscale=1.0,area=0;
 double distancias[10];
 double distmed,distmedold=-1;
 
@@ -122,15 +122,6 @@ void * detect_face(void *param) {
     if(count + add_remove_pt < 16)
       pt[add_remove_pt++] = cvPoint( pt[0].x-8 , pt[0].y-4);
 
-    minx = maxx = pt[0].x;
-    miny = maxy = pt[0].y;
-    for( i = 0; i < add_remove_pt; i++ ) {
-        if(points[1][i].x < minx) minx = points[1][i].x;
-        if(points[1][i].x > maxx) maxx = points[1][i].x;
-        if(points[1][i].y < miny) miny = points[1][i].y;
-        if(points[1][i].y > maxy) maxy = points[1][i].y;
-    }
-    area = (maxx - minx) * (maxy - miny);
 
   }
 
@@ -273,11 +264,12 @@ printf("deu nan: %d(i %d)  %d(k %d) -  %d(i %d)  %d(k %d)\n", (int)points[1][i].
             }
             distmed /= numdist;
             printf("distmed %f\n", distmed);
+            zscale = 1 + distmed/10;
 
-            float newarea = (maxx - minx) * (maxy - miny);
+            //float newarea = (maxx - minx) * (maxy - miny);
             //printf("area %f   new area %f\n", area, newarea);
-            if(area>0)
-                if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
+            //if(area>0)
+            //    if(newarea/area > 0.5 && newarea/area < 3.0) zscale=newarea/area;
 
 
             /* If the middle point moved few pixels DO NOT move window */
